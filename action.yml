@@ -1,0 +1,75 @@
+name: 'action gh runner usage'
+description: 'determines the current usage of github actions minutes for the organization'
+branding:
+  icon: dollar-sign
+  color: blue
+
+inputs:
+  token:
+    description: token to request billing information (needs organization admin read permissions)
+    required: true
+  threshold:
+    description: threshold value in percent of the included minutes from which the alternative runner is to be used
+    required: false
+    default: "95"
+  runner:
+    description: github runner to be used
+    required: false
+    default: ubuntu-latest
+  alternative_runner:
+    description: runner used after included github minutes have been consumed
+    required: false
+    default: ubuntu-latest
+
+outputs:
+  total_minutes_used:
+    description: minutes used throughout the last billing cycle
+    value: ${{ steps.info.outputs.total_minutes_used }}
+  total_paid_minutes_used:
+    description: minutes paid throughout the last billing cycle
+    value: ${{ steps.info.outputs.total_paid_minutes_used }}
+  included_minutes:
+    description: minutes included in the organizations contract
+    value: ${{ steps.info.outputs.included_minutes }}
+  included_usage_percentage:
+    description: percentage of the included minutes consumed throughout the billing cycle
+    value: ${{ steps.calculate.outputs.included_usage_percentage }}
+  runner:
+    description: runner to be used based on the consumed minutes
+    value: ${{ steps.runner.outputs.runner }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: check if organization
+      if: ${{ ! github.event.organization.login }}
+      shell: bash
+      run: |
+        echo "this only works for organizations"
+        exit 1
+    - name: login to github
+      shell: bash
+      run: echo ${{ inputs.token }} | gh auth login --with-token
+    - name: get info
+      id: info
+      shell: bash
+      run: |
+        PAYLOAD=$(gh api '/orgs/${{ github.event.organization.login }}/settings/billing/actions')
+        echo "total_minutes_used=$(echo $PAYLOAD | jq '.total_minutes_used')" >>$GITHUB_OUTPUT
+        echo "total_paid_minutes_used=$(echo $PAYLOAD | jq '.total_paid_minutes_used')" >>$GITHUB_OUTPUT
+        echo "included_minutes=$(echo $PAYLOAD | jq '.included_minutes')" >>$GITHUB_OUTPUT
+    - name: calculate
+      id: calculate
+      shell: bash
+      run: |
+        PERCENTAGE=$(( ${{ steps.info.outputs.total_minutes_used }} * 100 / ${{ steps.info.outputs.included_minutes }} ))
+        echo "included_usage_percentage=${PERCENTAGE}" >>$GITHUB_OUTPUT
+    - name: determine runner
+      id: runner
+      shell: bash
+      run: |
+        if [[ "${{ steps.calculate.outputs.included_usage_percentage }}" < "${{ inputs.threshold }}" ]]; then
+          echo "runner=${{ inputs.runner }}" >>$GITHUB_OUTPUT
+        else
+          echo "runner=${{ inputs.alternative_runner }}" >>$GITHUB_OUTPUT
+        fi
