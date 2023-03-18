@@ -1,4 +1,4 @@
-# GitHub Action - Organization Actions Usage
+# GitHub Action - Runner Switch
 
 This GitHub Action determines the current usage of GitHub Actions minutes for an organization and provides the option to switch to an alternative runner when the included minutes have been consumed.
 

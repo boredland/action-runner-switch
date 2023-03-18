@@ -1,5 +1,5 @@
-name: 'action gh runner usage'
-description: 'determines the current usage of github actions minutes for the organization'
+name: 'action runner switch'
+description: 'determines the current usage of github actions minutes for the organization and switch runners accordingly'
 branding:
   icon: dollar-sign
   color: blue
