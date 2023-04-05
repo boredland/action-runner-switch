@@ -68,7 +68,7 @@ runs:
       id: runner
       shell: bash
       run: |
-        if [[ "${{ steps.calculate.outputs.included_usage_percentage }}" < "${{ inputs.threshold }}" ]]; then
+        if [ "${{ steps.calculate.outputs.included_usage_percentage }}" -lt "${{ inputs.threshold }}" ]; then
           echo "runner=${{ inputs.runner }}" >>$GITHUB_OUTPUT
         else
           echo "runner=${{ inputs.alternative_runner }}" >>$GITHUB_OUTPUT
