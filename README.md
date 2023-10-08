@@ -44,16 +44,48 @@ The runner to be used based on the consumed minutes.
 
 ## Example Usage
 
+Create a workflow in your project that updates the runner to be used:
+
 ```yaml
-uses: your-org/action-gh-runner-usage@v1
-with:
-  token: ${{ secrets.TOKEN }}
-  threshold: 90
-  runner: ubuntu-latest
-  alternative_runner: buildjet-4vcpu-ubuntu-2204
+name: Determine runner
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8-18 * * 1-5" # this checks which runner to be used hourly on workdays between 8 and 18h (UTC). Adapt to your hours!!
+
+jobs:
+  determine_runner:
+    runs-on: ubuntu-latest
+    steps:
+      - id: small_runner
+        uses: boredland/action-gh-runner-usage@d0971fad0fafc8d6ed84455f9d67ad5e980a1bfb # 1.0.2
+        with:
+          token: ${{ secrets.GH_TOKEN_BILLING }}
+          alternative_runner: buildjet-2vcpu-ubuntu-2204
+      - id: big_runner
+        uses: boredland/action-gh-runner-usage@d0971fad0fafc8d6ed84455f9d67ad5e980a1bfb # 1.0.2
+        with:
+          token: ${{ secrets.GH_TOKEN_BILLING }}
+          alternative_runner: buildjet-4vcpu-ubuntu-2204
+      - name: set runner variables
+        run: |
+          echo ${{ secrets.GH_TOKEN_BILLING }} | gh auth login --with-token
+          echo ${{ steps.small_runner.outputs.runner }} | gh variable set small_runner --repo ${{ github.repository }}
+          echo ${{ steps.big_runner.outputs.runner }} | gh variable set big_runner --repo ${{ github.repository }}
 ```
 
-This action can be used to switch to an alternative runner if the included GitHub minutes have been consumed up to a specified threshold value. In the example above, if the included usage percentage is greater than or equal to 90%, the action switches to the buildjet-4vcpu-ubuntu-2204 runner. Otherwise, it uses the default runner, ubuntu-latest.
+In your workflows use the runner variable:
+
+```
+runs-on: ${{ vars.small_runner }}
+
+or
+
+runs-on: ${{ vars.big_runner }}
+```
+
+This action can be used to switch to an alternative runner if the included GitHub minutes have been consumed up to a specified threshold value.
 
 ## License
 
