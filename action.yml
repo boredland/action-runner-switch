@@ -44,7 +44,8 @@ runs:
       id: runner
       shell: bash
       run: |
-        if [ "${{ steps.info.outputs.net_amount }}" -gt "0" ]; then
+        # bc will return 0 for false and 1 for true
+        if [ $(echo "${{ steps.info.outputs.net_amount }} > 0" | bc) -ne 0 ]; then
           echo "runner=${{ inputs.alternative_runner }}" >>$GITHUB_OUTPUT
         else
           echo "runner=${{ inputs.runner }}" >>$GITHUB_OUTPUT
